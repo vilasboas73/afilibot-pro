@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+</head>
+<body style="background:black; color:white; font-family:Arial;">
+
+<h1>📊 Dashboard AfiliBot</h1>
+
+<h2>Produtos gerados:</h2>
+
+<ul>
+{% for item in historico %}
+    <li>{{ item.nome }} - {{ item.preco }}</li>
+{% endfor %}
+</ul>
+
+<a href="/">⬅ Voltar</a>
+
+</body>
+</html>
