@@ -5,16 +5,18 @@ import os
 
 app = Flask(__name__)
 
-# histórico simples (memória)
+# histórico simples
 historico = []
 
+# HOME
 @app.route("/")
 def home():
     try:
         return render_template("index.html")
     except Exception as e:
-        return f"Erro ao carregar HTML: {e}"
+        return f"Erro ao carregar página inicial: {e}"
 
+# GERAR VÍDEO
 @app.route("/gerar", methods=["POST"])
 def gerar():
     try:
@@ -45,8 +47,12 @@ def login():
 
     return render_template("login.html")
 
+# PÁGINA DE VENDAS
+@app.route("/vendas")
+def vendas():
+    return render_template("vendas.html")
 
-# RODAR ONLINE (Render)
+# RODAR NO RENDER
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
