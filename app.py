@@ -39,7 +39,6 @@ def cadastro():
 
         usuarios = carregar_usuarios()
 
-        # verifica se já existe
         for u in usuarios:
             if u["user"] == user:
                 return "Usuário já existe"
@@ -72,6 +71,7 @@ def login():
 
         for u in usuarios:
             if u["user"] == user and u["pwd"] == pwd:
+
                 if not u["ativo"]:
                     return redirect("/bloqueado")
 
@@ -83,7 +83,7 @@ def login():
     return render_template("login.html")
 
 # =========================
-# BLOQUEADO (NÃO PAGOU)
+# BLOQUEADO
 # =========================
 @app.route("/bloqueado")
 def bloqueado():
@@ -107,8 +107,10 @@ def dashboard():
         if u["user"] == session["user"]:
             return render_template("dashboard.html", user=u)
 
+    return "Usuário não encontrado"
+
 # =========================
-# LIBERAR USUÁRIO (MANUAL)
+# LIBERAR USUÁRIO
 # =========================
 @app.route("/liberar/<user>")
 def liberar(user):
@@ -123,6 +125,14 @@ def liberar(user):
     return f"{user} liberado com sucesso!"
 
 # =========================
+# LOGOUT (CORRIGIDO)
+# =========================
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+# =========================
 # VENDAS
 # =========================
 @app.route("/vendas")
@@ -130,20 +140,8 @@ def vendas():
     return render_template("vendas.html")
 
 # =========================
-# LOGOUT
+# RENDER (OBRIGATÓRIO)
 # =========================
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/login")
-
-# =========================
-# RENDER
-# =========================
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/login")
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
