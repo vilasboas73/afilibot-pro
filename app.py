@@ -6,9 +6,13 @@ app = Flask(__name__)
 app.secret_key = "segredo123"
 
 # =========================
-# BANCO (JSON)
+# BANCO (JSON SEGURO)
 # =========================
 def carregar_usuarios():
+    if not os.path.exists("users.json"):
+        with open("users.json", "w") as f:
+            f.write("[]")
+
     try:
         with open("users.json", "r") as f:
             return json.load(f)
@@ -34,8 +38,11 @@ def home():
 @app.route("/cadastro", methods=["GET", "POST"])
 def cadastro():
     if request.method == "POST":
-        user = request.form["user"]
-        pwd = request.form["pwd"]
+        user = request.form.get("user")
+        pwd = request.form.get("pwd")
+
+        if not user or not pwd:
+            return "Preencha todos os campos"
 
         usuarios = carregar_usuarios()
 
@@ -64,8 +71,8 @@ def cadastro():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = request.form["user"]
-        pwd = request.form["pwd"]
+        user = request.form.get("user")
+        pwd = request.form.get("pwd")
 
         usuarios = carregar_usuarios()
 
@@ -125,7 +132,7 @@ def liberar(user):
     return f"{user} liberado com sucesso!"
 
 # =========================
-# LOGOUT (CORRIGIDO)
+# LOGOUT
 # =========================
 @app.route("/logout")
 def logout():
