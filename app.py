@@ -6,25 +6,22 @@ app = Flask(__name__)
 app.secret_key = "segredo123"
 
 # =========================
-# BANCO (JSON SEGURO)
+# BANCO (SEGURO)
 # =========================
 def carregar_usuarios():
     if not os.path.exists("users.json"):
         with open("users.json", "w") as f:
             f.write("[]")
 
-    try:
-        with open("users.json", "r") as f:
-            return json.load(f)
-    except:
-        return []
+    with open("users.json", "r") as f:
+        return json.load(f)
 
 def salvar_usuarios(usuarios):
     with open("users.json", "w") as f:
         json.dump(usuarios, f, indent=4)
 
 # =========================
-# HOME (PROTEGIDA)
+# ROTAS
 # =========================
 @app.route("/")
 def home():
@@ -32,17 +29,11 @@ def home():
         return redirect("/login")
     return render_template("index.html")
 
-# =========================
-# CADASTRO
-# =========================
 @app.route("/cadastro", methods=["GET", "POST"])
 def cadastro():
     if request.method == "POST":
         user = request.form.get("user")
         pwd = request.form.get("pwd")
-
-        if not user or not pwd:
-            return "Preencha todos os campos"
 
         usuarios = carregar_usuarios()
 
@@ -50,24 +41,19 @@ def cadastro():
             if u["user"] == user:
                 return "Usuário já existe"
 
-        novo = {
+        usuarios.append({
             "user": user,
             "pwd": pwd,
             "ativo": False,
             "cliques": 0,
             "ganhos": 0
-        }
+        })
 
-        usuarios.append(novo)
         salvar_usuarios(usuarios)
-
         return redirect("/login")
 
     return render_template("cadastro.html")
 
-# =========================
-# LOGIN
-# =========================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -89,20 +75,10 @@ def login():
 
     return render_template("login.html")
 
-# =========================
-# BLOQUEADO
-# =========================
 @app.route("/bloqueado")
 def bloqueado():
-    return """
-    <h1>🔒 Acesso bloqueado</h1>
-    <p>Você precisa comprar para liberar</p>
-    <a href="/vendas">👉 Comprar acesso</a>
-    """
+    return "<h1>🔒 Compre para liberar</h1><a href='/vendas'>Comprar</a>"
 
-# =========================
-# DASHBOARD
-# =========================
 @app.route("/dashboard")
 def dashboard():
     if "user" not in session:
@@ -114,11 +90,6 @@ def dashboard():
         if u["user"] == session["user"]:
             return render_template("dashboard.html", user=u)
 
-    return "Usuário não encontrado"
-
-# =========================
-# LIBERAR USUÁRIO
-# =========================
 @app.route("/liberar/<user>")
 def liberar(user):
     usuarios = carregar_usuarios()
@@ -128,27 +99,13 @@ def liberar(user):
             u["ativo"] = True
 
     salvar_usuarios(usuarios)
+    return "Liberado!"
 
-    return f"{user} liberado com sucesso!"
-
-# =========================
-# LOGOUT
-# =========================
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
 
-# =========================
-# VENDAS
-# =========================
 @app.route("/vendas")
 def vendas():
     return render_template("vendas.html")
-
-# =========================
-# RENDER (OBRIGATÓRIO)
-# =========================
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
