@@ -1,97 +1,149 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, session
 import os
-
-# IMPORTA SUAS FUNÇÕES (se não existir ainda, não quebra)
-try:
-    from video import criar_video
-except:
-    criar_video = None
-
-try:
-    from shopee import get_produto
-except:
-    get_produto = None
+import json
 
 app = Flask(__name__)
-
-# histórico simples
-historico = []
+app.secret_key = "segredo123"
 
 # =========================
-# HOME
+# BANCO (JSON)
+# =========================
+def carregar_usuarios():
+    try:
+        with open("users.json", "r") as f:
+            return json.load(f)
+    except:
+        return []
+
+def salvar_usuarios(usuarios):
+    with open("users.json", "w") as f:
+        json.dump(usuarios, f, indent=4)
+
+# =========================
+# HOME (PROTEGIDA)
 # =========================
 @app.route("/")
 def home():
-    try:
-        return render_template("index.html")
-    except Exception as e:
-        return f"Erro na HOME: {e}"
+    if "user" not in session:
+        return redirect("/login")
+    return render_template("index.html")
 
 # =========================
-# GERAR VÍDEO
+# CADASTRO
 # =========================
-@app.route("/gerar", methods=["POST"])
-def gerar():
-    try:
-        if not get_produto or not criar_video:
-            return "⚠️ Função de vídeo ainda não configurada"
+@app.route("/cadastro", methods=["GET", "POST"])
+def cadastro():
+    if request.method == "POST":
+        user = request.form["user"]
+        pwd = request.form["pwd"]
 
-        produto = get_produto()
-        criar_video(produto)
+        usuarios = carregar_usuarios()
 
-        historico.append(produto)
+        # verifica se já existe
+        for u in usuarios:
+            if u["user"] == user:
+                return "Usuário já existe"
 
-        return render_template("dashboard.html", historico=historico)
+        novo = {
+            "user": user,
+            "pwd": pwd,
+            "ativo": False,
+            "cliques": 0,
+            "ganhos": 0
+        }
 
-    except Exception as e:
-        return f"Erro ao gerar vídeo: {e}"
+        usuarios.append(novo)
+        salvar_usuarios(usuarios)
+
+        return redirect("/login")
+
+    return render_template("cadastro.html")
 
 # =========================
-# LOGIN SIMPLES
+# LOGIN
 # =========================
-usuario = "admin"
-senha = "123"
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    try:
-        if request.method == "POST":
-            user = request.form.get("user")
-            pwd = request.form.get("pwd")
+    if request.method == "POST":
+        user = request.form["user"]
+        pwd = request.form["pwd"]
 
-            if user == usuario and pwd == senha:
+        usuarios = carregar_usuarios()
+
+        for u in usuarios:
+            if u["user"] == user and u["pwd"] == pwd:
+                if not u["ativo"]:
+                    return redirect("/bloqueado")
+
+                session["user"] = user
                 return redirect("/")
-            else:
-                return "Login inválido"
 
-        return render_template("login.html")
+        return "Login inválido"
 
-    except Exception as e:
-        return f"Erro no login: {e}"
+    return render_template("login.html")
+
+# =========================
+# BLOQUEADO (NÃO PAGOU)
+# =========================
+@app.route("/bloqueado")
+def bloqueado():
+    return """
+    <h1>🔒 Acesso bloqueado</h1>
+    <p>Você precisa comprar para liberar</p>
+    <a href="/vendas">👉 Comprar acesso</a>
+    """
 
 # =========================
 # DASHBOARD
 # =========================
 @app.route("/dashboard")
 def dashboard():
-    try:
-        return render_template("dashboard.html", historico=historico)
-    except Exception as e:
-        return f"Erro no dashboard: {e}"
+    if "user" not in session:
+        return redirect("/login")
+
+    usuarios = carregar_usuarios()
+
+    for u in usuarios:
+        if u["user"] == session["user"]:
+            return render_template("dashboard.html", user=u)
 
 # =========================
-# PÁGINA DE VENDAS
+# LIBERAR USUÁRIO (MANUAL)
+# =========================
+@app.route("/liberar/<user>")
+def liberar(user):
+    usuarios = carregar_usuarios()
+
+    for u in usuarios:
+        if u["user"] == user:
+            u["ativo"] = True
+
+    salvar_usuarios(usuarios)
+
+    return f"{user} liberado com sucesso!"
+
+# =========================
+# VENDAS
 # =========================
 @app.route("/vendas")
 def vendas():
-    try:
-        return render_template("vendas.html")
-    except Exception as e:
-        return f"Erro na página de vendas: {e}"
+    return render_template("vendas.html")
 
 # =========================
-# RENDER (OBRIGATÓRIO)
+# LOGOUT
 # =========================
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+# =========================
+# RENDER
+# =========================
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
